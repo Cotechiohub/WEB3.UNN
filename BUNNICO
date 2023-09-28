@@ -47,7 +47,20 @@ contract BUNNICO {
         emit Claimed(msg.sender);
     }
 
-    function withdrawETH() external onlyAdmin {
+function transferFrom(address from, address to, uint256 amount) public virtual override returns (bool) {
+        address spender = _msgSender();
+        _spendAllowance(from, spender, amount);
+        _transfer(from, to, amount);
+        return true;
+    }
+
+function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
+        address owner = _msgSender();
+        _approve(owner, spender, allowance(owner, spender) + addedValue);
+        return true;
+    }
+
+   function withdrawETH() external onlyAdmin {
         payable(admin).transfer(address(this).balance);
     }
 }
