@@ -1,0 +1,53 @@
+// SPDX-License-Identifier: SEE LICENSE IN LICENSE
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract BUNNICO {
+    address public admin;
+    address public token_address;
+    mapping(address => bool) public registered_addresses;
+    mapping(address => bool) public claimed_addresses;
+    uint256 public ico_start_time;
+    uint256 public constant ICO_DURATION = 86400; // 24 hours in seconds
+
+    event Registered(address indexed user);
+    event Claimed(address indexed user);
+
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only admin can call this function");
+        _;
+    }
+
+    constructor(address _token_address) {
+        admin = msg.sender;
+        token_address = _token_address;
+        ico_start_time = block.timestamp;
+    }
+
+    function register() external payable {
+        require(!registered_addresses[msg.sender], "User is already registered");
+        require(block.timestamp < ico_start_time + ICO_DURATION, "ICO has ended");
+        require(msg.value >= 0.01 ether, "Minimum registration fee is 0.01 ETH");
+
+        registered_addresses[msg.sender] = true;
+        emit Registered(msg.sender);
+    }
+
+    function claim(address recipient) external {
+        require(registered_addresses[msg.sender], "User is not registered");
+        require(!claimed_addresses[msg.sender], "User has already claimed");
+        require(block.timestamp >= ico_start_time + ICO_DURATION, "ICO has not ended yet");
+
+        IERC20 token = IERC20(token_address);
+        uint256 tokensToTransfer = 50 * 10**18; // 50 BUNN tokens
+
+        require(token.transfer(recipient, tokensToTransfer), "Token transfer failed");
+        claimed_addresses[msg.sender] = true;
+        emit Claimed(msg.sender);
+    }
+
+    function withdrawETH() external onlyAdmin {
+        payable(admin).transfer(address(this).balance);
+    }
+}
